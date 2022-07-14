@@ -23,20 +23,15 @@ include { check_file } from './modules/utils'
 include { Fastp } from './modules/fastp' addParams(
     stage: "quality_control",
     subdir: ""
-)
-include { MinimapAlignCigarPAF as MinimapReferenceAlignment } from './modules/minimap2' addParams(
-    stage: "reference_assembly",
-    subdir: "alignments"
-)
-include { ExtractAligned } from './modules/mgp_tools' addParams(
-    stage: "reference_assembly",
-    subdir: "extractions",
-    extract_min_len: params.extract_min_qaln_len,
-    extract_min_mapq: params.extract_min_mapq
+
 )
 include { Spades as ReferenceAssembly } from './modules/spades' addParams(
     stage: "reference_assembly",
     subdir: "assembly"
+)
+include { MinimapRetain } from './modules/samtools' addParams(
+    stage: "reference_assembly",
+    subdir: "mapped_reads"
 )
 
 // Aligns reads to outbreak reference and assembles aligned reads
@@ -46,9 +41,8 @@ workflow reference_assembly {
         reference
     main:
         qc_reads = Fastp(reads)
-        aligned_reads = MinimapReferenceAlignment(qc_reads[0], reference)
-        extracted_reads = ExtractAligned(aligned_reads[0], aligned_reads[1])
-        assembly = ReferenceAssembly(extracted_reads[0])
+        extracted_reads = MinimapRetain(qc_reads[0], reference)
+        assembly = ReferenceAssembly(extracted_reads)
     emit:
         assembly[0]
         assembly[1]
